@@ -12,7 +12,6 @@ class OrgTodoParser():
 
     def parseTodo(self):
         file_directory = '/Users/terrydrymonacos/Orgzly/'
-        #file_directory = '/Users/terrydrymonacos/org-test/'
         init_expr = re.compile(self.initRegExpr)
         todo_expr = re.compile(self.todoRegExpr, re.MULTILINE)
 
@@ -37,14 +36,6 @@ class OrgTodoParser():
                                     todo_message = theMatch.groupdict()['text']
                                 if group_num == 3:
                                     our_tags = theMatch.groupdict()['tags']
-                            if len(our_tags):
-
-                                print("file: {} TODO text : {} TODO tags: {}".format(elem,
-                                                                                     todo_message,
-                                                                                     our_tags))
-                            else:
-                                print("file: {} TODO text : {}".format(elem.rstrip('/n'),
-                                                                       todo_message))
                             todo_list_toprint.append(dict({'todo_message': todo_message,
                                                            'tags': our_tags
                                                            }
@@ -52,11 +43,10 @@ class OrgTodoParser():
                                                      )
                     if found:
                         self.grab_date(k, lines, todo_list_toprint)
-                    found = False
                 fh.close()
-                # Print out our result array
-                for elem in todo_list_toprint:
-                    print(elem)
+        # Print out our result array
+        for elem in todo_list_toprint:
+            self.to_org_format(elem)
 
     def grab_date(self, k, lines, list_of_todos):
         # let's see if the next record has our Scheduled Date
@@ -64,8 +54,6 @@ class OrgTodoParser():
         if k < len(lines):
             date_line = re.search(date_expr, lines[k+1])
             if date_line:
-                # print("time: {}".format(lines[k + 1].rstrip('\n')))
-                #self.print_the_stuff(date_line)
                 # transform into date
                 thisDate = datetime.date(int(date_line.groupdict()["year"]),
                                          int(date_line.groupdict()["month"]),
@@ -73,18 +61,16 @@ class OrgTodoParser():
                                          )
                 now = datetime.date.today()
                 timeDelta = thisDate - now
-                if timeDelta.days <= 0:
+                if timeDelta.days <= -7 or timeDelta.days >= 1:
                     if len(list_of_todos) > 1:
-                        self.print_the_stuff(date_line)
-                        list_of_todos[:-1].pop()
+                        list_of_todos.pop()
+            else:
+                if len(list_of_todos):
+                    list_of_todos.pop()
 
-    def print_the_stuff(self, date_line):
-        print("year: {} Month: {}  Day: {} fullDate: {}".format(date_line.groupdict()["year"],
-                                                                date_line.groupdict()["month"],
-                                                                date_line.groupdict()["day"],
-                                                                date_line.groupdict()["dom"]
-                                                                )
-              )
+
+    def to_org_format(self, date_element):
+        print(" - [ ] #todo {} ".format(date_element['todo_message'].rstrip('\n')))
 
 
 def main():
