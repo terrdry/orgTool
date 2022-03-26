@@ -15,12 +15,6 @@ def create_argparser():
                         default="/Users/terrydrymonacos/Orgzly/",
                         metavar="source_directory",
                         help="Directory containing the Orgzly files")
-    parser.add_argument("--predays",
-                        action="store",
-                        default=-1,
-                        type=int,
-                        metavar='pre',
-                        help="Select the number of days to include before today")
     parser.add_argument("--postdays",
                         action="store",
                         default=1,
@@ -39,9 +33,8 @@ class OrgTodoParser():
     initRegExpr = r'^\*\sTODO\s.*'
     dateRegExpr = r'^SCHEDULED:\s<(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+)\s(?P<dom>\w*)'
 
-    def __init__(self, input_directory, predays, postdays, output_file):
+    def __init__(self, input_directory, postdays, output_file):
         self.input_directory = input_directory
-        self.predays = predays
         self.postdays = postdays
         self.output_file = output_file
         self.todo_list_toprint = None
@@ -108,17 +101,16 @@ class OrgTodoParser():
                 now = datetime.date.today()
                 time_delta = this_date - now
                 if not( time_delta.days <= self.postdays):
-                #if not(-self.predays <= time_delta.days <= self.postdays):
                     del self.todo_list_toprint[k]
             else:
                 del self.todo_list_toprint[k]
 
     def to_org_format(self, date_element):
-        return " - [ ] #todo {}         <==<span class='cm-strong'>{}</span>\n".format(date_element['todo_message'], date_element['date'])
+        return " - [ ] #todo {}  <span class='cm-strong'>{}</span>\n".format(date_element['todo_message'], date_element['date'])
 
 
-def main(input_directory, predays, postdays, output_file):
-    a = OrgTodoParser(input_directory, predays, postdays, output_file)
+def main(input_directory, postdays, output_file):
+    a = OrgTodoParser(input_directory, postdays, output_file)
     a.parseTodo()
 
 
@@ -126,7 +118,6 @@ if __name__ == "__main__":
     parser = create_argparser()
     parsed_args = parser.parse_args()
     main(parsed_args.srcdir,
-         parsed_args.predays,
          parsed_args.postdays,
          parsed_args.outfile
          )
