@@ -17,7 +17,7 @@ def create_argparser():
                         help="Directory containing the Orgzly files")
     parser.add_argument("--postdays",
                         action="store",
-                        default=1,
+                        default=0,
                         type=int,
                         metavar='post',
                         help="Select the number of days to include after today")
