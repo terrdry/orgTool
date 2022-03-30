@@ -4,6 +4,9 @@ import datetime
 import argparse
 
 
+
+
+
 def create_argparser():
     """
     Create the argument parser and return the object that has access to the parameters
@@ -28,7 +31,13 @@ def create_argparser():
                         help="location and name of output file")
     return parser
 
-class OrgTodoParser():
+
+class OrgTodoParser:
+    """
+    Class that is responsible for reading a directory of files and processing the lines in this org
+    :return: parser object
+    """
+
     todoRegExpr = r'^\*\sTODO(?P<text>([a-zA-Z0-9\-]*\s){1,})(?P<tags>(\:[\w\-]*){0,})?'
     initRegExpr = r'^\*\sTODO\s.*'
     dateRegExpr = r'^SCHEDULED:\s<(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+)\s(?P<dom>\w*)'
@@ -38,18 +47,19 @@ class OrgTodoParser():
         self.postdays = postdays
         self.output_file = output_file
         self.list_to_print = list()
+        self.file_list = list()
+        self.regex_init = re.compile(self.initRegExpr)
+        self.regex_todo = re.compile(self.todoRegExpr, re.MULTILINE)
 
     def prepare_parsing(self):
-        init_expr = re.compile(self.initRegExpr)
-        todo_expr = re.compile(self.todoRegExpr, re.MULTILINE)
 
-        file_list = list(filter(lambda x: x.endswith('.org'), os.listdir(self.input_dir)))
-        self.process_todo(file_list, self.input_dir, init_expr, todo_expr)
+        self.file_list = list(filter(lambda x: x.endswith('.org'), os.listdir(self.input_dir)))
+        self.process_todo(self.file_list, self.input_dir)
 
-    def process_todo(self, file_list, file_directory, init_expr, todo_expr):
+    def process_todo(self, file_list, file_directory):
         for elem in file_list:
             with open(file_directory + elem, 'r') as fh:
-                self.read_file(fh, init_expr, todo_expr)
+                self.read_file(fh)
 
         # process the list now and filter out the dates
         self.filter_dates()
@@ -61,14 +71,15 @@ class OrgTodoParser():
         with open(self.output_file, "w") as fh:
             fh.writelines([self.to_org_format(elem) for elem in self.list_to_print])
 
-    def read_file(self, fh, init_expr, todo_expr):
+    def read_file(self, fh):
         lines = fh.readlines()
         for k, item in enumerate(lines):
-            todo_match = re.search(init_expr, item)
+            todo_match = re.search(self.regex_init, item)
             found = False
             if todo_match:
                 found = True
-                matches = re.finditer(todo_expr, item)
+                todo_message = ""
+                matches = re.finditer(self.regex_todo, item)
                 our_tags = 0
                 for matchNum, theMatch in enumerate(matches):
                     for group_num in range(0, len(theMatch.groups())):
@@ -77,13 +88,13 @@ class OrgTodoParser():
                         if group_num == 3:
                             our_tags = theMatch.groupdict()['tags']
                     self.list_to_print.append(dict({'todo_message': todo_message,
-                                                        'tags': our_tags,
-                                                        'date': ""
+                                                    'tags': our_tags,
+                                                    'date': ""
                                                     }
                                                    )
                                               )
             if found:
-               self.grab_date(k, lines)
+                self.grab_date(k, lines)
 
     def grab_date(self, k, lines):
         # let's see if the next record has our Scheduled Date
@@ -98,20 +109,21 @@ class OrgTodoParser():
                                           )
                 self.list_to_print[-1]['date'] = this_date
 
-
     def filter_dates(self):
         for k in range(len(self.list_to_print) - 1, -1, -1):
             if self.list_to_print[k]['date']:
                 this_date = self.list_to_print[k]['date']
                 now = datetime.date.today()
                 time_delta = this_date - now
-                if not( time_delta.days <= self.postdays):
+                if not(time_delta.days <= self.postdays):
                     del self.list_to_print[k]
             else:
                 del self.list_to_print[k]
 
     def to_org_format(self, date_element):
-        return " - [ ] #todo {}  <span class='cm-strong'>{}</span>\n".format(date_element['todo_message'], date_element['date'])
+        return " - [ ] #todo {}  <span class='cm-strong'>{}</span>\n".format(date_element['todo_message'],
+                                                                             date_element['date']
+                                                                             )
 
 
 def main(input_directory, postdays, output_file):
@@ -120,10 +132,9 @@ def main(input_directory, postdays, output_file):
 
 
 if __name__ == "__main__":
-    parser = create_argparser()
-    parsed_args = parser.parse_args()
+    parsed_line = create_argparser()
+    parsed_args = parsed_line.parse_args()
     main(parsed_args.srcdir,
          parsed_args.postdays,
          parsed_args.outfile
          )
-
