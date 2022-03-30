@@ -3,11 +3,16 @@ import os
 import datetime
 from unittest import mock
 
+from main import create_argparser, OrgTodoParser, OrgError
+import builtins
+
+
 def return_todoy_offset(offset):
     time_delta = datetime.timedelta(days=offset)
     return(datetime.date.today()+time_delta).isoformat()
 
 
+test_empty_string=""
 test_string = f"""
 * TODO Yoga :home:
 SCHEDULED: <{return_todoy_offset(0)} Tue .+1d>
@@ -31,9 +36,6 @@ SCHEDULED: <{return_todoy_offset(-10)} Tue .+1d>
 :LAST_REPEAT: [2022-03-28 Mon 06:59]
 :END:
 """
-
-from main import create_argparser, OrgTodoParser
-import builtins
 
 
 class OptionParser(unittest.TestCase):
@@ -162,16 +164,16 @@ class TodoParser(unittest.TestCase):
         todo_parser.filter_dates()
         self.assertEqual(len(todo_parser.list_to_print), 1)
 
-    # def test_prepare_parsing(self):
-    #     os.listdir = Mock()
-    #     OrgTodoParser.process_todo = Mock()
-    #     os.listdir.return_value = ['a.org', 'file.foo', 'file2.org']
-    #     OrgTodoParser.process_todo.return_value = None
-    #
-    #     todo_parser = OrgTodoParser("", 0, "")
-    #     todo_parser.prepare_parsing()
-    #
-    #     self.assertEqual(len(todo_parser.file_list), 2)
+    def test_prepare_parsing(self):
+        os.listdir = mock.Mock()
+        OrgTodoParser.process_todo = mock.Mock()
+        os.listdir.return_value = ['a.org', 'file.foo', 'file2.org']
+        OrgTodoParser.process_todo.return_value = None
+
+        todo_parser = OrgTodoParser("", 0, "")
+        todo_parser.prepare_parsing()
+
+        self.assertEqual(len(todo_parser.file_list), 2)
 
     # @unittest.mock.patch('builtins.open')
     @mock.patch.object(builtins, 'open', new_callable=mock.mock_open, read_data=test_string)
@@ -180,4 +182,17 @@ class TodoParser(unittest.TestCase):
 
         todo_parser = OrgTodoParser("", 0, "")
         todo_parser.process_todo(list_of_files, '/home/terryd/')
-        pass
+
+    @mock.patch.object(builtins, 'open', new_callable=mock.mock_open, read_data=test_empty_string)
+    def testEmptyFileRead(self, mock_open):
+        error_string = ''
+        try:
+            list_of_files = ['a.org']
+            todo_parser = OrgTodoParser("", 0, "")
+            todo_parser.process_todo(list_of_files, '/home/terryd/')
+        except OrgError as e:
+            error_string = e.strerror
+            pass
+        else:
+            self.fail('exception not triggered for empty file')
+

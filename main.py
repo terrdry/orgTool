@@ -4,6 +4,8 @@ import datetime
 import argparse
 
 
+class OrgError(OSError):
+    pass
 
 
 
@@ -73,6 +75,8 @@ class OrgTodoParser:
 
     def read_file(self, fh):
         lines = fh.readlines()
+        if not len(lines):
+            raise OrgError(12, f'file {fh.name} is empty')
         for k, item in enumerate(lines):
             todo_match = re.search(self.regex_init, item)
             found = False
