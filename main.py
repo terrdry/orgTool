@@ -39,12 +39,14 @@ class OrgTodoParser:
     Class that is responsible for reading a directory of files and processing the lines in this org
     :return: parser object
     """
-
     todoRegExpr = r'^\*\sTODO(?P<text>([a-zA-Z0-9\-]*\s){1,})(?P<tags>(\:[\w\-]*){0,})?'
     initRegExpr = r'^\*\sTODO\s.*'
     dateRegExpr = r'^SCHEDULED:\s<(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+)\s(?P<dom>\w*)'
 
     def __init__(self, input_dir, postdays, output_file):
+        """
+        Initializaton constructor
+        """
         self.input_dir = input_dir
         self.postdays = postdays
         self.output_file = output_file
@@ -54,11 +56,17 @@ class OrgTodoParser:
         self.regex_todo = re.compile(self.todoRegExpr, re.MULTILINE)
 
     def prepare_parsing(self):
-
+        """
+        Read files to be processed and feed them to process_todo()
+        """
         self.file_list = list(filter(lambda x: x.endswith('.org'), os.listdir(self.input_dir)))
         self.process_todo(self.file_list, self.input_dir)
 
     def process_todo(self, file_list, file_directory):
+        """
+        Read individual files and filter their dates and print
+        results to file
+        """
         for elem in file_list:
             with open(file_directory + elem, 'r') as fh:
                 self.read_file(fh)
@@ -70,10 +78,16 @@ class OrgTodoParser:
         self.print_to_file()
 
     def print_to_file(self):
+        """
+        Print the results to file
+        """
         with open(self.output_file, "w") as fh:
             fh.writelines([self.to_org_format(elem) for elem in self.list_to_print])
 
     def read_file(self, fh):
+        """
+        Read the individual line and search for the TODO regex
+        """
         lines = fh.readlines()
         if not len(lines):
             raise OrgError(12, f'file {fh.name} is empty')
@@ -101,7 +115,10 @@ class OrgTodoParser:
                 self.grab_date(k, lines)
 
     def grab_date(self, k, lines):
-        # let's see if the next record has our Scheduled Date
+        """
+        Check to see that the next line may have a scheduled date
+        If it is found, the date is stored to the array list_to_print
+        """
         date_expr = re.compile(self.dateRegExpr, re.MULTILINE)
         if k+1 < len(lines):
             date_line = re.search(date_expr, lines[k+1])
@@ -114,6 +131,9 @@ class OrgTodoParser:
                 self.list_to_print[-1]['date'] = this_date
 
     def filter_dates(self):
+        """
+        filter out any dates that are in the future of today()
+        """
         for k in range(len(self.list_to_print) - 1, -1, -1):
             if self.list_to_print[k]['date']:
                 this_date = self.list_to_print[k]['date']
@@ -125,12 +145,19 @@ class OrgTodoParser:
                 del self.list_to_print[k]
 
     def to_org_format(self, date_element):
+        """
+        Format the output to conform to Obsidian's HTML elements
+        """
         return " - [ ] #todo {}  <span class='cm-strong'>{}</span>\n".format(date_element['todo_message'],
                                                                              date_element['date']
                                                                              )
 
 
 def main(input_directory, postdays, output_file):
+
+    """
+    main function
+    """
     a = OrgTodoParser(input_directory, postdays, output_file)
     a.prepare_parsing()
 
